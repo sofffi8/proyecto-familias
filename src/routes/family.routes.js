@@ -4,10 +4,10 @@ const Family = require('../models/family.model');
 const User = require('../models/user.model');
 const xlsx = require('xlsx'); 
 
-// 1. RUTA POST: Registro individual de una familia (Por si cargás a mano)
+// 1. RUTA POST: Registro individual de una familia
 router.post('/register', async (req, res) => {
   try {
-    const { fullName, dni, birthDate, address, phone, UserId } = req.body;
+    const { fullName, dni, birthDate, address, phone, UserId, compFamiliar } = req.body;
 
     if (!fullName) {
       return res.status(400).json({ message: 'El nombre de la familia es obligatorio.' });
@@ -26,6 +26,7 @@ router.post('/register', async (req, res) => {
       birthDate,
       address,
       phone,
+      compFamiliar,
       UserId: UserId || 1 
     });
 
@@ -36,7 +37,7 @@ router.post('/register', async (req, res) => {
   }
 });
 
-// 2. RUTA GET: Listar todas las familias (La que necesita React ahora)
+// 2. RUTA GET: Listar todas las familias
 router.get('/', async (req, res) => {
   try {
     const families = await Family.findAll({
@@ -75,6 +76,7 @@ router.post('/import', async (req, res) => {
       const dni = row['DNI'] ? String(row['DNI']) : null;
       const phone = row['CONTACTO'] ? String(row['CONTACTO']) : null;
       const address = row['DIRECCIÓN'] || null;
+      const compFamiliar = row['COMP. FAMILIAR'] || 0;
       
       const responsableExcel = row['RESPONSABLE'] ? String(row['RESPONSABLE']).trim().toLowerCase() : null;
 
@@ -89,7 +91,6 @@ router.post('/import', async (req, res) => {
       }
 
       let asignadoUserId = defaultUserId || 1;
-
       if (responsableExcel) {
         const usuarioEncontrado = await User.findOne({ where: { username: responsableExcel } });
         if (usuarioEncontrado) {
@@ -100,12 +101,11 @@ router.post('/import', async (req, res) => {
       await Family.create({
         fullName,
         dni,
-        birthDate: null, 
+        compFamiliar,
         address,
         phone,
         UserId: asignadoUserId
       });
-
       creadas++;
     }
 
@@ -114,18 +114,16 @@ router.post('/import', async (req, res) => {
       familiasCreadas: creadas,
       familiasSaltadasPorDniRepetido: saltadas
     });
-
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: 'Error al procesar el archivo Excel', error: error.message });
   }
-}); // 💡 ¡LLAVE CORREGIDA AQUÍ! Cierra bien la importación
+});
 
 // 4. RUTA GET: Buscar familia por DNI
 router.get('/by-dni/:dni', async (req, res) => {
   try {
     const { dni } = req.params;
-
     const family = await Family.findOne({
       where: { dni: dni },
       include: [{
@@ -149,18 +147,18 @@ router.get('/by-dni/:dni', async (req, res) => {
 router.put('/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    const { fullName, dni, phone, address, UserId } = req.body;
+    const { fullName, dni, phone, address, UserId, compFamiliar } = req.body;
 
     const family = await Family.findByPk(id);
     if (!family) {
       return res.status(404).json({ message: 'Familia no encontrada' });
     }
 
-    // Actualizamos con validación manual
     await family.update({
       fullName: fullName,
       dni: dni ? String(dni).trim() : null,
       phone: phone,
+      compFamiliar: compFamiliar,
       address: address,
       UserId: parseInt(UserId)
     });
@@ -171,7 +169,6 @@ router.put('/:id', async (req, res) => {
 
     res.status(200).json({ message: 'Actualizado', family: updatedFamily });
   } catch (error) {
-    // ESTO VA A ENVIAR EL MENSAJE REAL DE VALIDACIÓN AL FRONTEND
     console.error('Error detallado:', error);
     res.status(500).json({ message: error.errors ? error.errors[0].message : error.message });
   }
@@ -181,7 +178,6 @@ router.put('/:id', async (req, res) => {
 router.delete('/:id', async (req, res) => {
   try {
     const { id } = req.params;
-
     const family = await Family.findByPk(id);
 
     if (!family) {

@@ -17,10 +17,11 @@ const Family = sequelize.define('Family', {
     allowNull: true,
     unique: true
   },
-  birthDate: {
-    type: DataTypes.DATEONLY,
-    allowNull: true
-  },
+  compFamiliar: {
+  type: DataTypes.INTEGER, // O STRING, depende si ponés "3" o "3 personas"
+  allowNull: true,
+  defaultValue: 0
+},
   address: {
     type: DataTypes.STRING,
     allowNull: true
