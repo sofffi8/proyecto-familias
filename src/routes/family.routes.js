@@ -9,12 +9,10 @@ router.post('/register', async (req, res) => {
   try {
     const { fullName, dni, birthDate, address, phone, UserId } = req.body;
 
-    // Validamos que al menos venga el nombre completo
     if (!fullName) {
       return res.status(400).json({ message: 'El nombre de la familia es obligatorio.' });
     }
 
-    // Si viene DNI, chequeamos que no esté repetido
     if (dni) {
       const exist = await Family.findOne({ where: { dni } });
       if (exist) {
@@ -28,7 +26,7 @@ router.post('/register', async (req, res) => {
       birthDate,
       address,
       phone,
-      UserId: UserId || 1 // Si no viene ID, le asigna el 1 por defecto
+      UserId: UserId || 1 
     });
 
     res.status(201).json({ message: 'Familia registrada con éxito.', newFamily });
@@ -38,15 +36,13 @@ router.post('/register', async (req, res) => {
   }
 });
 
-
 // 2. RUTA GET: Listar todas las familias (La que necesita React ahora)
 router.get('/', async (req, res) => {
   try {
-    // Buscamos todas las familias e incluimos el modelo User para saber quién es el responsable
     const families = await Family.findAll({
       include: [{
         model: User,
-        attributes: ['username'] // Solo nos interesa traer el nombre de usuario
+        attributes: ['username'] 
       }]
     });
     
@@ -57,8 +53,7 @@ router.get('/', async (req, res) => {
   }
 });
 
-
-// 3. RUTA POST: Importación masiva desde Excel (VERSIÓN INTELIGENTE CON RESPONSABLE DINÁMICO)
+// 3. RUTA POST: Importación masiva desde Excel
 router.post('/import', async (req, res) => {
   try {
     const { filePath, defaultUserId } = req.body; 
@@ -81,12 +76,10 @@ router.post('/import', async (req, res) => {
       const phone = row['CONTACTO'] ? String(row['CONTACTO']) : null;
       const address = row['DIRECCIÓN'] || null;
       
-      // Capturamos el nombre del responsable que viene en la columna del Excel
       const responsableExcel = row['RESPONSABLE'] ? String(row['RESPONSABLE']).trim().toLowerCase() : null;
 
       if (!fullName) continue;
 
-      // Verificamos si ya existe por DNI para no duplicar datos
       if (dni) {
         const exist = await Family.findOne({ where: { dni } });
         if (exist) {
@@ -95,17 +88,15 @@ router.post('/import', async (req, res) => {
         }
       }
 
-      // LÓGICA DINÁMICA: Buscamos al usuario en la base de datos por su username
-      let asignadoUserId = defaultUserId || 1; // Por defecto sos vos
+      let asignadoUserId = defaultUserId || 1;
 
       if (responsableExcel) {
         const usuarioEncontrado = await User.findOne({ where: { username: responsableExcel } });
         if (usuarioEncontrado) {
-          asignadoUserId = usuarioEncontrado.id; // Si existe, guardamos su ID real
+          asignadoUserId = usuarioEncontrado.id;
         }
       }
 
-      // Creamos la familia con el ID del compañero correspondiente
       await Family.create({
         fullName,
         dni,
@@ -128,12 +119,13 @@ router.post('/import', async (req, res) => {
     console.error(error);
     res.status(500).json({ message: 'Error al procesar el archivo Excel', error: error.message });
   }
+}); // 💡 ¡LLAVE CORREGIDA AQUÍ! Cierra bien la importación
 
-  router.get('/by-dni/:dni', async (req, res) => {
+// 4. RUTA GET: Buscar familia por DNI
+router.get('/by-dni/:dni', async (req, res) => {
   try {
     const { dni } = req.params;
 
-    // Buscamos la familia por DNI e incluimos su responsable asignado
     const family = await Family.findOne({
       where: { dni: dni },
       include: [{
@@ -151,63 +143,58 @@ router.post('/import', async (req, res) => {
     console.error(error);
     res.status(500).json({ message: 'Error al buscar la familia por DNI.', error: error.message });
   }
- });
+});
 
- // 5. NUEVA RUTA PUT: Editar los datos de una familia existente
+// 5. RUTA PUT: Editar los datos de una familia existente
 router.put('/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    const { fullName, dni, address, phone, UserId } = req.body;
+    const { fullName, dni, phone, address, UserId } = req.body;
 
-    // Buscamos la familia en la base de datos
     const family = await Family.findByPk(id);
-
     if (!family) {
-      return res.status(404).json({ message: 'No se encontró la familia para editar.' });
+      return res.status(404).json({ message: 'Familia no encontrada' });
     }
 
-    // Actualizamos los campos con lo que mande el frontend (o dejamos lo que ya estaba)
-    family.fullName = fullName || family.fullName;
-    family.dni = dni !== undefined ? dni : family.dni;
-    family.address = address !== undefined ? address : family.address;
-    family.phone = phone !== undefined ? phone : family.phone;
-    family.UserId = UserId || family.UserId;
+    await family.update({
+      fullName,
+      dni: dni ? dni.toString().trim() : null,
+      phone,
+      address,
+      UserId: parseInt(UserId)
+    });
 
-    await family.save();
-
-    // Volvemos a buscarla incluyendo el usuario para devolvérsela actualizada a React
     const updatedFamily = await Family.findByPk(id, {
       include: [{ model: User, attributes: ['id', 'username'] }]
     });
 
-    res.status(200).json({ message: 'Familia actualizada con éxito.', family: updatedFamily });
+    res.status(200).json({
+      message: 'Familia actualizada con éxito',
+      family: updatedFamily 
+    });
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: 'Error al actualizar la familia.', error: error.message });
+    console.error('Error al actualizar familia:', error);
+    res.status(500).json({ message: 'Error interno al guardar los cambios' });
   }
- });
+});
 
- // 6. NUEVA RUTA DELETE: Eliminar una familia por su ID
+// 6. RUTA DELETE: Eliminar una familia por su ID
 router.delete('/:id', async (req, res) => {
   try {
     const { id } = req.params;
 
-    // Buscamos si la familia existe
     const family = await Family.findByPk(id);
 
     if (!family) {
       return res.status(404).json({ message: 'No se encontró la familia que querés eliminar.' });
     }
 
-    // La borramos de la base de datos
     await family.destroy();
-
     res.status(200).json({ message: 'Familia eliminada con éxito del padrón.' });
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: 'Error al eliminar la familia.', error: error.message });
   }
-});
 });
 
 module.exports = router;
