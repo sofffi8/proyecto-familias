@@ -76,5 +76,22 @@ router.get('/register-by-dni', async (req, res) => {
     res.status(500).json({ message: 'Error al procesar la entrega.', error: error.message });
   }
 });
+// 3. RUTA DELETE: Eliminar una entrega por su ID
+router.delete('/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const delivery = await Delivery.findByPk(id);
+
+    if (!delivery) {
+      return res.status(404).json({ message: 'No se encontró la asistencia que querés eliminar.' });
+    }
+
+    await delivery.destroy();
+    res.status(200).json({ message: 'Asistencia eliminada con éxito.' });
+  } catch (error) {
+    console.error('Error al eliminar asistencia:', error);
+    res.status(500).json({ message: 'Error interno al intentar eliminar la asistencia.' });
+  }
+});
 
 module.exports = router;
