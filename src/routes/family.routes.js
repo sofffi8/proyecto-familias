@@ -152,22 +152,28 @@ router.put('/:id', async (req, res) => {
     const { fullName, dni, phone, address, UserId } = req.body;
 
     const family = await Family.findByPk(id);
-    if (!family) return res.status(404).json({ message: 'Familia no encontrada' });
+    if (!family) {
+      return res.status(404).json({ message: 'Familia no encontrada' });
+    }
 
-    // Actualizamos solo lo que llega, sin ser tan estrictos
+    // Actualizamos con validación manual
     await family.update({
-      fullName: fullName || family.fullName,
-      dni: dni || family.dni,
-      phone: phone || family.phone,
-      address: address || family.address,
-      UserId: UserId ? parseInt(UserId) : family.UserId
+      fullName: fullName,
+      dni: dni ? String(dni).trim() : null,
+      phone: phone,
+      address: address,
+      UserId: parseInt(UserId)
     });
 
-    res.status(200).json({ message: 'Éxito', family });
+    const updatedFamily = await Family.findByPk(id, {
+      include: [{ model: User, attributes: ['id', 'username'] }]
+    });
+
+    res.status(200).json({ message: 'Actualizado', family: updatedFamily });
   } catch (error) {
-    // ESTO ES LO MÁS IMPORTANTE:
-    console.error('ERROR DETALLADO:', error);
-    res.status(500).json({ message: error.message });
+    // ESTO VA A ENVIAR EL MENSAJE REAL DE VALIDACIÓN AL FRONTEND
+    console.error('Error detallado:', error);
+    res.status(500).json({ message: error.errors ? error.errors[0].message : error.message });
   }
 });
 
