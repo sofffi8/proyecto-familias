@@ -152,29 +152,22 @@ router.put('/:id', async (req, res) => {
     const { fullName, dni, phone, address, UserId } = req.body;
 
     const family = await Family.findByPk(id);
-    if (!family) {
-      return res.status(404).json({ message: 'Familia no encontrada' });
-    }
+    if (!family) return res.status(404).json({ message: 'Familia no encontrada' });
 
+    // Actualizamos solo lo que llega, sin ser tan estrictos
     await family.update({
-      fullName,
-      dni: dni ? dni.toString().trim() : null,
-      phone,
-      address,
-      UserId: parseInt(UserId)
+      fullName: fullName || family.fullName,
+      dni: dni || family.dni,
+      phone: phone || family.phone,
+      address: address || family.address,
+      UserId: UserId ? parseInt(UserId) : family.UserId
     });
 
-    const updatedFamily = await Family.findByPk(id, {
-      include: [{ model: User, attributes: ['id', 'username'] }]
-    });
-
-    res.status(200).json({
-      message: 'Familia actualizada con éxito',
-      family: updatedFamily 
-    });
+    res.status(200).json({ message: 'Éxito', family });
   } catch (error) {
-    console.error('Error al actualizar familia:', error);
-    res.status(500).json({ message: 'Error interno al guardar los cambios' });
+    // ESTO ES LO MÁS IMPORTANTE:
+    console.error('ERROR DETALLADO:', error);
+    res.status(500).json({ message: error.message });
   }
 });
 
