@@ -11,7 +11,6 @@ router.get('/', async (req, res) => {
       include: [
         {
           model: Family,
-          // 🟢 AGREGAMOS 'compFamiliar' AQUÍ
           attributes: ['id', 'fullName', 'dni', 'address', 'compFamiliar'], 
           include: [{ model: User, attributes: ['username'] }]
         }

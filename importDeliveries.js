@@ -11,7 +11,7 @@ const NOMBRE_HOJA_PADRON = 'Listado';
 // MAPEO DE RESPONSABLES (Nombres del Excel ➡️ IDs de la Base de Datos)
 const userMapping = {
   'alicia': 1, 'ana': 2, 'angeles': 3, 'anto': 4, 'elena': 5,
-  'fabian': 6, 'laura': 7, 'luciana': 8, 'marcia': 9, 'micaela': 10,
+  'fabian': 6, 'laura': 7, 'local': 8, 'marcia': 9, 'micaela': 10,
   'monica': 11, 'romina': 12, 'sandra': 13, 'silvia': 14, 'sofia': 15,
   'tamara': 16, 'victoria': 17
 };
