@@ -16,7 +16,7 @@ app.use('/api', globalRouter);
 const PORT = process.env.PORT || 3001;
 
 // Sincronización de Base de Datos y Arranque del Servidor
-sequelize.sync({ alter: true }) // Mantiene tus tablas actualizadas sin borrar los usuarios que creamos
+sequelize.sync() // Mantiene tus tablas actualizadas sin borrar los usuarios que creamos
   .then(() => {
     console.log('✔ Base de datos conectada y sincronizada con éxito.');
     const PORT = process.env.PORT || 3000;
